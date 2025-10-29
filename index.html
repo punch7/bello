@@ -1,1 +1,120 @@
-const WEBHOOK_URL = "https://punch7.app.n8n.cloud/webhook-test/bello/events";
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Bello — Zegar</title>
+  <style>
+    html,body { height:100%; margin:0; background:#FAFAF8; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
+    .wrap { height:100%; display:grid; place-items:center }
+    canvas { width:min(92vmin, 720px); height:min(92vmin, 720px) }
+    .status { position:fixed; left:12px; right:12px; bottom:12px; text-align:center; color:#666; font-size:14px }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="clock" width="800" height="800"></canvas>
+  </div>
+  <div class="status" id="status">Ładowanie…</div>
+
+  <script>
+    // ✳️ Twój endpoint z n8n:
+    const WEBHOOK_URL = "https://punch7.app.n8n.cloud/webhook-test/bello/events";
+
+    const canvas = document.getElementById('clock');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+
+    let segments = [];
+
+    async function fetchData() {
+      statusEl.textContent = 'Odświeżam…';
+      try {
+        const res = await fetch(WEBHOOK_URL, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        segments = Array.isArray(data) ? data : [];
+        statusEl.textContent = `OK: ${segments.length} wydarzeń • ${new Date().toLocaleTimeString()}`;
+        draw();
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = 'Błąd pobierania danych (sprawdź CORS/URL)';
+      }
+    }
+
+    function draw() {
+      // responsywny rozmiar
+      const W = canvas.width = canvas.clientWidth;
+      const H = canvas.height = canvas.clientHeight;
+      const cx = W/2, cy = H/2;
+
+      const R    = Math.min(W,H) * 0.45; // promień tarczy
+      const RING = Math.min(W,H) * 0.08; // grubość pierścienia
+
+      ctx.clearRect(0,0,W,H);
+
+      // tło tarczy
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(cx, cy, R+10, 0, Math.PI*2);
+      ctx.fill();
+
+      // segmenty (eventy)
+      for (const s of segments) {
+        let a0 = s.startAngle;
+        let a1 = s.endAngle;
+        if (a1 <= a0) a1 += Math.PI*2; // kluczowe: ciągłość łuku przy przejściu przez -π/π
+
+        const ring = s.ringIndex || 0;
+        const rOuter = R - ring * RING;
+        const rInner = rOuter - RING + 4;
+
+        // wypełnienie wycinka
+        ctx.save();
+        if (s.status === 'past') ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rOuter, a0, a1);
+        ctx.arc(cx, cy, rInner, a1, a0, true);
+        ctx.closePath();
+        ctx.fillStyle = s.color || '#ddd';
+        ctx.fill();
+        ctx.restore();
+
+        // ikona na środku wycinka
+        const mid = (a0 + a1) / 2;
+        const rMid = (rOuter + rInner) / 2;
+        ctx.font = `${Math.round(Math.min(W,H)*0.06)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(s.icon || '🔆', cx + rMid*Math.cos(mid), cy + rMid*Math.sin(mid));
+      }
+
+      // wskazówki czasu (bieżący czas)
+      const now = new Date();
+      const hr  = now.getHours() % 12;
+      const mn  = now.getMinutes();
+      const aHr = ((hr*60+mn)/720) * Math.PI*2 - Math.PI/2;
+      const aMn = (mn/60) * Math.PI*2 - Math.PI/2;
+
+      ctx.strokeStyle = '#222';
+      // godzinna
+      ctx.lineWidth = Math.max(4, Math.min(W,H)*0.012);
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.lineTo(cx + (R*0.52)*Math.cos(aHr), cy + (R*0.52)*Math.sin(aHr)); ctx.stroke();
+      // minutowa
+      ctx.lineWidth = Math.max(3, Math.min(W,H)*0.008);
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.lineTo(cx + (R*0.8)*Math.cos(aMn), cy + (R*0.8)*Math.sin(aMn)); ctx.stroke();
+
+      // pin na środku
+      ctx.fillStyle = '#222';
+      ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H)*0.015, 0, Math.PI*2); ctx.fill();
+    }
+
+    // harmonogram
+    fetchData();                    // pierwszy fetch
+    setInterval(fetchData, 60_000); // odświeżaj dane co minutę
+    setInterval(draw, 1_000);       // odświeżaj wskazówki co sekundę
+  </script>
+</body>
+</html>
