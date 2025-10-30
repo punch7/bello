@@ -103,9 +103,17 @@
         ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
       }
 
-      // WYCIĘCIA — pełne „wedge” od środka (kąty już po obrocie z backendu)
+      // WYCIĘCIA — pełne „wedge" od środka
+      // Backend gives angles relative to dialAnchorMinutes at 12 o'clock position
+      // We need to rotate them to absolute time positions
+      const anchorOffset = (dialAnchorMinutes / 720) * Math.PI * 2;
+      console.log('DEBUG anchorOffset:', { dialAnchorMinutes, anchorOffsetRad: anchorOffset, anchorOffsetDeg: (anchorOffset * 180 / Math.PI).toFixed(1) + '°' });
+      
+      
       for (const s of segments) {
-        let a0 = s.startAngle, a1 = s.endAngle;
+        // Convert backend angles (relative to dialAnchorMinutes) to absolute angles
+        let a0 = s.startAngle + anchorOffset;
+        let a1 = s.endAngle + anchorOffset;
         if (a1 <= a0) a1 += Math.PI*2; // ciągłość łuku (przejście przez -π/π)
 
         const p0 = polar(cx, cy, R, a0);
