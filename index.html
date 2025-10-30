@@ -161,12 +161,12 @@
       // === GODZINNA (SNAKE) ===
       // Draw wavy snake body for hour hand
       const snakeLength = R * 0.52;
-      const snakeSegments = 8;
-      const waveAmplitude = Math.min(W,H) * 0.015;
-      const waveFrequency = 2;
+      const snakeSegments = 12;
+      const waveAmplitude = Math.min(W,H) * 0.020;
+      const waveFrequency = 2.5;
       
-      ctx.strokeStyle = '#22c55e'; // green color
-      ctx.lineWidth = Math.max(6, Math.min(W,H)*0.015);
+      ctx.strokeStyle = '#22c55e'; // bright green color
+      ctx.lineWidth = Math.max(7, Math.min(W,H)*0.018);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       
@@ -177,7 +177,7 @@
       for (let i = 1; i <= snakeSegments; i++) {
         const t = i / snakeSegments;
         const dist = snakeLength * t;
-        const wave = Math.sin(t * Math.PI * waveFrequency) * waveAmplitude * (1 - t * 0.3);
+        const wave = Math.sin(t * Math.PI * waveFrequency) * waveAmplitude * (1 - t * 0.2);
         const angle = aHr + Math.PI/2;
         const x = cx + dist * Math.cos(aHr) + wave * Math.cos(angle);
         const y = cy + dist * Math.sin(aHr) + wave * Math.sin(angle);
@@ -186,21 +186,21 @@
       ctx.stroke();
       
       // Draw snake head (triangular pointer)
-      const headSize = Math.min(W,H) * 0.025;
+      const headSize = Math.min(W,H) * 0.028;
       const headX = cx + snakeLength * Math.cos(aHr);
       const headY = cy + snakeLength * Math.sin(aHr);
       
       ctx.fillStyle = '#16a34a'; // darker green for head
       ctx.beginPath();
       // Point of the triangle (ahead)
-      const tipDist = headSize * 1.5;
+      const tipDist = headSize * 1.8;
       const tipX = headX + tipDist * Math.cos(aHr);
       const tipY = headY + tipDist * Math.sin(aHr);
       ctx.moveTo(tipX, tipY);
       
       // Two base points of the triangle
-      const baseAngle1 = aHr + Math.PI * 0.75;
-      const baseAngle2 = aHr - Math.PI * 0.75;
+      const baseAngle1 = aHr + Math.PI * 0.7;
+      const baseAngle2 = aHr - Math.PI * 0.7;
       ctx.lineTo(headX + headSize * Math.cos(baseAngle1), headY + headSize * Math.sin(baseAngle1));
       ctx.lineTo(headX + headSize * Math.cos(baseAngle2), headY + headSize * Math.sin(baseAngle2));
       ctx.closePath();
@@ -208,11 +208,11 @@
       
       // Add eyes to snake head
       ctx.fillStyle = '#000';
-      const eyeSize = Math.min(W,H) * 0.004;
-      const eyeOffset = headSize * 0.4;
+      const eyeSize = Math.min(W,H) * 0.005;
+      const eyeOffset = headSize * 0.5;
       const eyeAngle1 = aHr + Math.PI/2;
       const eyeAngle2 = aHr - Math.PI/2;
-      const eyeDist = headSize * 0.3;
+      const eyeDist = headSize * 0.4;
       
       ctx.beginPath();
       ctx.arc(headX + eyeDist * Math.cos(aHr) + eyeOffset * Math.cos(eyeAngle1), 
