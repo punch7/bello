@@ -107,9 +107,7 @@
       // Backend gives angles relative to dialAnchorMinutes at 12 o'clock position
       // We need to rotate them to absolute time positions
       const anchorOffset = (dialAnchorMinutes / 720) * Math.PI * 2;
-      console.log('DEBUG anchorOffset:', { dialAnchorMinutes, anchorOffsetRad: anchorOffset, anchorOffsetDeg: (anchorOffset * 180 / Math.PI).toFixed(1) + '°' });
-      
-      
+
       for (const s of segments) {
         // Convert backend angles (relative to dialAnchorMinutes) to absolute angles
         let a0 = s.startAngle + anchorOffset;
