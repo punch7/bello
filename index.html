@@ -18,7 +18,7 @@
   <div class="status" id="status">Ładowanie…</div>
 
   <script>
-    // ✳️ Twój endpoint z n8n:
+    // ✳️ Twój endpoint z n8n (z kodem "wedges + anchor 12h"):
     const WEBHOOK_URL = "https://punch7.app.n8n.cloud/webhook/bello/events";
 
     const canvas = document.getElementById('clock');
@@ -26,6 +26,7 @@
     const statusEl = document.getElementById('status');
 
     let segments = [];
+    let dialAnchorMinutes = 0; // start 12h okna (z n8n)
 
     async function fetchData() {
       statusEl.textContent = 'Odświeżam…';
@@ -34,6 +35,7 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         segments = Array.isArray(data) ? data : [];
+        dialAnchorMinutes = segments[0]?.dialAnchorMinutes ?? 0;
         statusEl.textContent = `OK: ${segments.length} wydarzeń • ${new Date().toLocaleTimeString()}`;
         draw();
       } catch (e) {
@@ -42,59 +44,74 @@
       }
     }
 
+    function polar(cx, cy, r, a) {
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    }
+
     function draw() {
-      // responsywny rozmiar
       const W = canvas.width = canvas.clientWidth;
       const H = canvas.height = canvas.clientHeight;
       const cx = W/2, cy = H/2;
 
-      const R    = Math.min(W,H) * 0.45; // promień tarczy
-      const RING = Math.min(W,H) * 0.08; // grubość pierścienia
+      const R = Math.min(W,H) * 0.46; // promień tarczy
+      const rIcon = R * 0.82;         // promień dla emoji
 
       ctx.clearRect(0,0,W,H);
 
       // tło tarczy
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.arc(cx, cy, R+10, 0, Math.PI*2);
+      ctx.arc(cx, cy, R + 10, 0, Math.PI*2);
       ctx.fill();
 
-      // segmenty (eventy)
+      // delikatne ticki co 1h (12 szt.)
+      ctx.strokeStyle = '#E6E2DC';
+      ctx.lineWidth = Math.max(1.5, Math.min(W,H)*0.003);
+      for (let i=0;i<12;i++){
+        const a = (i/12)*Math.PI*2 - Math.PI/2;
+        const p0 = polar(cx, cy, R*0.96, a);
+        const p1 = polar(cx, cy, R, a);
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+      }
+
+      // WYCIĘCIA — pełne "wedge" od środka
       for (const s of segments) {
-        let a0 = s.startAngle;
-        let a1 = s.endAngle;
-        if (a1 <= a0) a1 += Math.PI*2; // kluczowe: ciągłość łuku przy przejściu przez -π/π
+        let a0 = s.startAngle, a1 = s.endAngle;
+        if (a1 <= a0) a1 += Math.PI*2; // ciągłość łuku
 
-        const ring = s.ringIndex || 0;
-        const rOuter = R - ring * RING;
-        const rInner = rOuter - RING + 4;
+        const p0 = polar(cx, cy, R, a0);
+        const p1 = polar(cx, cy, R, a1);
 
-        // wypełnienie wycinka
         ctx.save();
-        if (s.status === 'past') ctx.globalAlpha = 0.35;
-        ctx.beginPath();
-        ctx.arc(cx, cy, rOuter, a0, a1);
-        ctx.arc(cx, cy, rInner, a1, a0, true);
-        ctx.closePath();
+        ctx.globalAlpha = s.status === 'past' ? 0.35 : s.status === 'now' ? 1 : 0.9;
         ctx.fillStyle = s.color || '#ddd';
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);          // start w środku
+        ctx.lineTo(p0.x, p0.y);      // promień do startu
+        ctx.arc(cx, cy, R, a0, a1);  // łuk do końca
+        ctx.closePath();             // powrót do środka
         ctx.fill();
         ctx.restore();
 
-        // ikona na środku wycinka
+        // emoji na środku łuku
         const mid = (a0 + a1) / 2;
-        const rMid = (rOuter + rInner) / 2;
+        const ip = polar(cx, cy, rIcon, mid);
         ctx.font = `${Math.round(Math.min(W,H)*0.06)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(s.icon || '🔆', cx + rMid*Math.cos(mid), cy + rMid*Math.sin(mid));
+        ctx.fillText(s.icon || '🔆', ip.x, ip.y);
       }
 
-      // wskazówki czasu (bieżący czas)
+      // === WSKAZÓWKI CZASU (względem anchor 12h) ===
+      // obliczamy "minuty-na-tarczy" i odejmujemy dialAnchorMinutes
       const now = new Date();
-      const hr  = now.getHours() % 12;
-      const mn  = now.getMinutes();
-      const aHr = ((hr*60+mn)/720) * Math.PI*2 - Math.PI/2;
-      const aMn = (mn/60) * Math.PI*2 - Math.PI/2;
+      const nowMinDial = ( (now.getHours()%12) * 60 ) + now.getMinutes();
+      const shiftedMin = ( (nowMinDial - dialAnchorMinutes) % 720 + 720 ) % 720;
+
+      // hour hand (0..720 min) i minute hand (0..60)
+      const aHr = (shiftedMin/720) * Math.PI*2 - Math.PI/2;
+      const aMn = ((now.getMinutes())/60) * Math.PI*2 - Math.PI/2; // minutowa nie wymaga anchor (rotacja i tak widoczna)
 
       ctx.strokeStyle = '#222';
       // godzinna
