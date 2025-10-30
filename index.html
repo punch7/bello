@@ -5,10 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Bello — Zegar</title>
   <style>
-    html,body { height:100%; margin:0; background:#FAFAF8; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
-    .wrap { height:100%; display:grid; place-items:center }
-    canvas { width:min(92vmin, 720px); height:min(92vmin, 720px) }
-    .status { position:fixed; left:12px; right:12px; bottom:12px; text-align:center; color:#666; font-size:14px }
+    html,body {
+      height:100%; margin:0;
+      background:#FAFAF8;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    }
+    .wrap { height:100%; display:grid; place-items:center; }
+    canvas { width:min(92vmin, 720px); height:min(92vmin, 720px); }
+    .status {
+      position:fixed; left:12px; right:12px; bottom:12px;
+      text-align:center; color:#666; font-size:14px;
+    }
   </style>
 </head>
 <body>
@@ -18,21 +25,22 @@
   <div class="status" id="status">Ładowanie…</div>
 
   <script>
-    // ✳️ Twój endpoint z n8n (z kodem "wedges + anchor 12h"):
+    // Twój endpoint z n8n:
     const WEBHOOK_URL = "https://punch7.app.n8n.cloud/webhook/bello/events";
 
-    const canvas = document.getElementById('clock');
-    const ctx = canvas.getContext('2d');
-    const statusEl = document.getElementById('status');
+    const canvas = document.getElementById("clock");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
 
     let segments = [];
-    let dialAnchorMinutes = 0; // start 12h okna (z n8n)
+    let dialAnchorMinutes = 0;
 
+    // --- POBIERANIE DANYCH ---
     async function fetchData() {
-      statusEl.textContent = 'Odświeżam…';
+      statusEl.textContent = "Odświeżam…";
       try {
-        const res = await fetch(WEBHOOK_URL, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const res = await fetch(WEBHOOK_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         segments = Array.isArray(data) ? data : [];
         dialAnchorMinutes = segments[0]?.dialAnchorMinutes ?? 0;
@@ -40,98 +48,111 @@
         draw();
       } catch (e) {
         console.error(e);
-        statusEl.textContent = 'Błąd pobierania danych (sprawdź CORS/URL)';
+        statusEl.textContent = "Błąd pobierania danych (sprawdź CORS/URL)";
       }
     }
 
+    // --- FUNKCJE POMOCNICZE ---
     function polar(cx, cy, r, a) {
       return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
     }
 
+    function getHMInTZ(date, timeZone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false, timeZone
+      }).formatToParts(date);
+      const h = Number(parts.find(p => p.type === "hour").value);
+      const m = Number(parts.find(p => p.type === "minute").value);
+      const s = Number(parts.find(p => p.type === "second").value);
+      return { h, m, s };
+    }
+
+    // --- RYSOWANIE ---
     function draw() {
       const W = canvas.width = canvas.clientWidth;
       const H = canvas.height = canvas.clientHeight;
-      const cx = W/2, cy = H/2;
+      const cx = W / 2, cy = H / 2;
 
-      const R = Math.min(W,H) * 0.46; // promień tarczy
-      const rIcon = R * 0.82;         // promień dla emoji
+      const R = Math.min(W, H) * 0.46;
+      const rIcon = R * 0.82;
 
-      ctx.clearRect(0,0,W,H);
+      ctx.clearRect(0, 0, W, H);
 
-      // tło tarczy
-      ctx.fillStyle = '#FFFFFF';
+      // tło
+      ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
-      ctx.arc(cx, cy, R + 10, 0, Math.PI*2);
+      ctx.arc(cx, cy, R + 10, 0, Math.PI * 2);
       ctx.fill();
 
-      // delikatne ticki co 1h (12 szt.)
-      ctx.strokeStyle = '#E6E2DC';
-      ctx.lineWidth = Math.max(1.5, Math.min(W,H)*0.003);
-      for (let i=0;i<12;i++){
-        const a = (i/12)*Math.PI*2 - Math.PI/2;
-        const p0 = polar(cx, cy, R*0.96, a);
+      // ticki godzinowe
+      ctx.strokeStyle = "#E6E2DC";
+      ctx.lineWidth = Math.max(1.5, Math.min(W, H) * 0.003);
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+        const p0 = polar(cx, cy, R * 0.96, a);
         const p1 = polar(cx, cy, R, a);
         ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
       }
 
-      // WYCIĘCIA — pełne "wedge" od środka
+      // WYCIĘCIA (pełne wedge)
       for (const s of segments) {
         let a0 = s.startAngle, a1 = s.endAngle;
-        if (a1 <= a0) a1 += Math.PI*2; // ciągłość łuku
+        if (a1 <= a0) a1 += Math.PI * 2;
 
         const p0 = polar(cx, cy, R, a0);
         const p1 = polar(cx, cy, R, a1);
 
         ctx.save();
-        ctx.globalAlpha = s.status === 'past' ? 0.35 : s.status === 'now' ? 1 : 0.9;
-        ctx.fillStyle = s.color || '#ddd';
-
+        ctx.globalAlpha = s.status === "past" ? 0.35 : s.status === "now" ? 1 : 0.9;
+        ctx.fillStyle = s.color || "#ddd";
         ctx.beginPath();
-        ctx.moveTo(cx, cy);          // start w środku
-        ctx.lineTo(p0.x, p0.y);      // promień do startu
-        ctx.arc(cx, cy, R, a0, a1);  // łuk do końca
-        ctx.closePath();             // powrót do środka
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(p0.x, p0.y);
+        ctx.arc(cx, cy, R, a0, a1);
+        ctx.closePath();
         ctx.fill();
         ctx.restore();
 
-        // emoji na środku łuku
+        // emoji
         const mid = (a0 + a1) / 2;
         const ip = polar(cx, cy, rIcon, mid);
-        ctx.font = `${Math.round(Math.min(W,H)*0.06)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(s.icon || '🔆', ip.x, ip.y);
+        ctx.font = `${Math.round(Math.min(W, H) * 0.06)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(s.icon || "🔆", ip.x, ip.y);
       }
 
-      // === WSKAZÓWKI CZASU (względem anchor 12h) ===
-      // obliczamy "minuty-na-tarczy" i odejmujemy dialAnchorMinutes
+      // WSKAZÓWKI CZASU (ET)
       const now = new Date();
-      const nowMinDial = ( (now.getHours()%12) * 60 ) + now.getMinutes();
-      const shiftedMin = ( (nowMinDial - dialAnchorMinutes) % 720 + 720 ) % 720;
+      const { h, m, s } = getHMInTZ(now, "America/New_York");
+      const nowMinDial = (h % 12) * 60 + m + s / 60;
+      const shiftedMin = ((nowMinDial - dialAnchorMinutes) % 720 + 720) % 720;
 
-      // hour hand (0..720 min) i minute hand (0..60)
-      const aHr = (shiftedMin/720) * Math.PI*2 - Math.PI/2;
-      const aMn = ((now.getMinutes())/60) * Math.PI*2 - Math.PI/2; // minutowa nie wymaga anchor (rotacja i tak widoczna)
+      const aHr = (shiftedMin / 720) * Math.PI * 2 - Math.PI / 2;
+      const aMn = ((m + s / 60) / 60) * Math.PI * 2 - Math.PI / 2;
 
-      ctx.strokeStyle = '#222';
+      ctx.strokeStyle = "#222";
       // godzinna
-      ctx.lineWidth = Math.max(4, Math.min(W,H)*0.012);
-      ctx.beginPath(); ctx.moveTo(cx,cy);
-      ctx.lineTo(cx + (R*0.52)*Math.cos(aHr), cy + (R*0.52)*Math.sin(aHr)); ctx.stroke();
+      ctx.lineWidth = Math.max(4, Math.min(W, H) * 0.012);
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + (R * 0.52) * Math.cos(aHr), cy + (R * 0.52) * Math.sin(aHr)); ctx.stroke();
       // minutowa
-      ctx.lineWidth = Math.max(3, Math.min(W,H)*0.008);
-      ctx.beginPath(); ctx.moveTo(cx,cy);
-      ctx.lineTo(cx + (R*0.8)*Math.cos(aMn), cy + (R*0.8)*Math.sin(aMn)); ctx.stroke();
+      ctx.lineWidth = Math.max(3, Math.min(W, H) * 0.008);
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + (R * 0.8) * Math.cos(aMn), cy + (R * 0.8) * Math.sin(aMn)); ctx.stroke();
 
-      // pin na środku
-      ctx.fillStyle = '#222';
-      ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H)*0.015, 0, Math.PI*2); ctx.fill();
+      // pin
+      ctx.fillStyle = "#222";
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.min(W, H) * 0.015, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    // harmonogram
-    fetchData();                    // pierwszy fetch
-    setInterval(fetchData, 60_000); // odświeżaj dane co minutę
-    setInterval(draw, 1_000);       // odświeżaj wskazówki co sekundę
+    // --- HARMONOGRAM ---
+    fetchData();
+    setInterval(fetchData, 60_000);
+    setInterval(draw, 1_000);
   </script>
 </body>
 </html>
