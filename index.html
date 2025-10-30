@@ -35,8 +35,19 @@
         const res = await fetch(WEBHOOK_URL, { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-        segments = Array.isArray(data) ? data : [];
-        dialAnchorMinutes = segments[0]?.dialAnchorMinutes ?? 0;
+  segments = Array.isArray(data) ? data : [];
+  // normalize anchor from backend: ensure it's a number in 0..719
+  const rawAnchor = segments[0]?.dialAnchorMinutes ?? 0;
+  dialAnchorMinutes = Number(rawAnchor) || 0;
+  dialAnchorMinutes = ((dialAnchorMinutes % 720) + 720) % 720;
+  
+  // DEBUG: log values to console
+  console.log('DEBUG fetchData:', {
+    rawAnchor,
+    normalizedDialAnchorMinutes: dialAnchorMinutes,
+    segmentsCount: segments.length
+  });
+  
         // status: pokaż czas ET, żeby łatwo porównać z wskazówkami
         const { h, m, s } = getHMInTZ(new Date(), 'America/New_York');
         const hh = String(h).padStart(2,'0'), mm = String(m).padStart(2,'0'), ss = String(s).padStart(2,'0');
@@ -126,19 +137,26 @@
 
       // minuty na tarczy 12h w ET (0..720)
       const nowMinDial = (h % 12) * 60 + m + s/60;
+      
+      // DEBUG: log time calculations
+      console.log('DEBUG draw:', {
+        localTime: now.toLocaleString(),
+        etTime: `${h}:${m}:${s}`,
+        nowMinDial,
+        dialAnchorMinutes
+      });
 
-      // przesunięte o kotwicę (obrócone okno)
-      const shiftedMin = ((nowMinDial - dialAnchorMinutes) % 720 + 720) % 720;
+      // KĄTY ABSOLUTNE (bez użycia dialAnchorMinutes)
+      // Zegar ma pokazywać rzeczywisty czas ET na stałej tarczy.
+      const aHr = (nowMinDial / 720) * Math.PI*2 - Math.PI/2;
+      const aMn = ((m + s/60) / 60) * Math.PI*2 - Math.PI/2;
 
-      // KĄTY
-      // godzinowa – pokazuje pozycję w obrębie obróconego 12h okna
-      const aHr = (shiftedMin / 720) * Math.PI*2 - Math.PI/2;
-
-      // minutowa – też musi być obrócona o (dialAnchorMinutes % 60),
-      // bo "zero minut" na tarczy po obrocie startuje w anchorze
-      const minuteOffset = dialAnchorMinutes % 60;
-      const minuteInWindow = ( (m + s/60) - minuteOffset + 60 ) % 60;
-      const aMn = (minuteInWindow / 60) * Math.PI*2 - Math.PI/2;
+      // DEBUG: log angle calculations (absolute)
+      console.log('DEBUG angles (abs):', {
+        nowMinDial,
+        aHr: (aHr * 180 / Math.PI).toFixed(1) + '°',
+        aMn: (aMn * 180 / Math.PI).toFixed(1) + '°'
+      });
 
       ctx.strokeStyle = '#222';
 
