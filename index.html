@@ -164,21 +164,93 @@
         aMn: (aMn * 180 / Math.PI).toFixed(1) + '°'
       });
 
-      ctx.strokeStyle = '#222';
-
-      // godzinna
-      ctx.lineWidth = Math.max(4, Math.min(W,H)*0.012);
-      ctx.beginPath(); ctx.moveTo(cx,cy);
-      ctx.lineTo(cx + (R*0.52)*Math.cos(aHr), cy + (R*0.52)*Math.sin(aHr)); ctx.stroke();
-
-      // minutowa
-      ctx.lineWidth = Math.max(3, Math.min(W,H)*0.008);
-      ctx.beginPath(); ctx.moveTo(cx,cy);
-      ctx.lineTo(cx + (R*0.8)*Math.cos(aMn), cy + (R*0.8)*Math.sin(aMn)); ctx.stroke();
-
-      // pin na środku
-      ctx.fillStyle = '#222';
-      ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H)*0.015, 0, Math.PI*2); ctx.fill();
+      // === HOUR HAND (wskazówka godzinowa) ===
+      const hourHandLength = R * 0.52;
+      const hourHandEndX = cx + hourHandLength * Math.cos(aHr);
+      const hourHandEndY = cy + hourHandLength * Math.sin(aHr);
+      
+      ctx.save();
+      
+      // Shadow for hour hand (more prominent)
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+      ctx.shadowBlur = Math.min(W, H) * 0.02;
+      ctx.shadowOffsetX = Math.min(W, H) * 0.008;
+      ctx.shadowOffsetY = Math.min(W, H) * 0.008;
+      
+      // Thick hour hand with gradient (mint/turquoise)
+      const handWidth = Math.max(12, Math.min(W, H) * 0.035);
+      const gradient = ctx.createLinearGradient(
+        cx, cy,
+        hourHandEndX, hourHandEndY
+      );
+      gradient.addColorStop(0, '#6EC9B8');    // medium mint at base
+      gradient.addColorStop(0.5, '#5FCEB4');  // turquoise in middle
+      gradient.addColorStop(1, '#52C4AA');    // slightly darker at end
+      
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = handWidth;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(hourHandEndX, hourHandEndY);
+      ctx.stroke();
+      
+      // Circle at the end of hour hand with gradient
+      const circleRadius = Math.min(W, H) * 0.04;
+      const circleGradient = ctx.createRadialGradient(
+        hourHandEndX - circleRadius * 0.3, hourHandEndY - circleRadius * 0.3, 0,
+        hourHandEndX, hourHandEndY, circleRadius
+      );
+      circleGradient.addColorStop(0, '#7DD3C0');
+      circleGradient.addColorStop(1, '#52C4AA');
+      
+      ctx.fillStyle = circleGradient;
+      ctx.beginPath();
+      ctx.arc(hourHandEndX, hourHandEndY, circleRadius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+      
+      // === CENTER CIRCLE (3D effect) ===
+      const centerRadius = Math.min(W, H) * 0.032;
+      
+      ctx.save();
+      
+      // Subtle shadow for center circle
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+      ctx.shadowBlur = Math.min(W, H) * 0.01;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = Math.min(W, H) * 0.003;
+      
+      // Base circle with gradient (darker on bottom-right, lighter on top-left)
+      const baseGradient = ctx.createRadialGradient(
+        cx - centerRadius * 0.25, cy - centerRadius * 0.25, centerRadius * 0.1,
+        cx + centerRadius * 0.2, cy + centerRadius * 0.2, centerRadius * 1.2
+      );
+      baseGradient.addColorStop(0, '#AEDDD4');
+      baseGradient.addColorStop(0.5, '#7DD3C0');
+      baseGradient.addColorStop(1, '#5BB5A2');
+      
+      ctx.fillStyle = baseGradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, centerRadius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+      
+      // Bright highlight on top-left to create 3D sphere effect
+      const highlightGradient = ctx.createRadialGradient(
+        cx - centerRadius * 0.35, cy - centerRadius * 0.35, 0,
+        cx - centerRadius * 0.35, cy - centerRadius * 0.35, centerRadius * 0.7
+      );
+      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+      highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+      highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      
+      ctx.fillStyle = highlightGradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, centerRadius, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // ---------- HARMONOGRAM ----------
