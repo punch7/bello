@@ -1,0 +1,54 @@
+{
+  "name": "Bello",
+  "tagline": "Zegar, który uczy rytmu dnia.",
+  "one_liner": "Bello to rodzinny zegar rytmu dnia — prosty, kolorowy i zrozumiały nawet dla dziecka. Pokazuje, co się dzieje teraz i co będzie później.",
+  "vision": {
+    "core_idea": "Zamiast zarządzać czasem, Bello pozwala go poczuć. Zegar pokazuje rytm dnia za pomocą kolorowych segmentów i prostych ikon — bez tekstu, bez powiadomień, w sposób naturalny dla całej rodziny.",
+    "goal": "Zbudować działający proof-of-concept z czytelnym, dotykowym interfejsem inspirowanym dziecięcą logiką i spokojem codziennych rytuałów — działający na iPadzie lub w formie fizycznego wyświetlacza.",
+    "why": "Większość narzędzi do planowania jest tworzona dla dorosłych. Bello pokazuje dzień w sposób, który rozumie trzylatek — kolorami, symbolami, rytmem i ruchem. Pomaga budować poczucie bezpieczeństwa i przewidywalności dnia.",
+    "inspiration": [
+      "Zabawki Montessori — prostota, forma, zrozumiałość.",
+      "Zegary analogowe — płynność i rytm bez presji.",
+      "Apple Family Setup — wspólne doświadczenie technologii.",
+      "Design calm tech — urządzenia, które nie przeszkadzają, tylko wspierają."
+    ],
+    "long_term_vision": "Bello stanie się centrum rodzinnego rytmu — domowym wyświetlaczem łączącym kalendarze, pory dnia, pogodę i emocje. Może działać jako aplikacja na tablet, lub jako fizyczny produkt z e-ink/LED, który dyskretnie współgra z rytmem domowego życia."
+  },
+  "experience": {
+    "inputs": [
+      "Google Calendar events (lub manualnie wpisane rytuały domowe)."
+    ],
+    "outputs": [
+      "Czytelny, kolorowy interfejs 12h z dużymi ikonami i prostym tekstem.",
+      "Tło zmieniające się w rytmie dnia (świt, dzień, wieczór, noc).",
+      "Ruch wskazówki pokazujący aktualny moment w rytmie 12h."
+    ],
+    "rules": {
+      "mapping": "Każdy event → prosty segment z dużą ikoną i krótkim opisem (Play, Breakfast, Lunch...).",
+      "color": "Każdy typ aktywności ma przypisany kolor (np. posiłki – żółty, zabawa – niebieski, sen – fioletowy).",
+      "layout": "Segmenty są pogrubione, czytelne z daleka, zaprojektowane w duchu spokojnego designu dla dzieci.",
+      "background": "Tło przedstawia porę dnia, nadając całości kontekst emocjonalny (np. różowy świt, nocny granat)."
+    }
+  },
+  "tech_stack": {
+    "data_pipeline": "Google Calendar API → n8n workflow → JSON output do przeglądarki.",
+    "frontend": "Responsywny webapp w HTML/JS/CSS, dostosowany do pionowego formatu iPada 13”.",
+    "processing": "JS generujący segmenty na podstawie godzin i czasu trwania eventów.",
+    "deployment": "n8n Cloud + GitHub Pages lub lokalny serwer z trybem offline (do prototypu)."
+  },
+  "success_criteria": {
+    "1": "Zegar działa automatycznie, pokazując bieżące i nadchodzące aktywności w rytmie dnia.",
+    "2": "Interfejs jest zrozumiały dla dziecka bez potrzeby tłumaczenia.",
+    "3": "Wersja webowa działa płynnie w pionowym formacie iPada.",
+    "4": "Projekt ma potencjał do rozwoju w stronę fizycznego produktu (np. Bello Home Display)."
+  },
+  "future_directions": {
+    "next_steps": [
+      "Dodanie ikon emocji i pogody jako warstwy nastroju dnia.",
+      "Personalizacja: własne rytuały i nazwy (np. 'czas na książkę').",
+      "Integracja z Home Assistant — np. gaszenie świateł na 'Bedtime'.",
+      "Tryb 'quiet mode' — delikatne animacje bez dźwięku.",
+      "Eksperyment z e-ink i pionowym formatem 13”."
+    ]
+  }
+}

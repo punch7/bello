@@ -1,0 +1,60 @@
+{
+  "layoutMap": [
+    {
+      "id": "clock_container",
+      "role": "card",
+      "bbox": { "x": 0, "y": 0, "width": 768, "height": 768 },
+      "zIndex": 0,
+      "notes": "Główna ramka aplikacji z zaokrąglonymi rogami, tło gradientowe (niebo — od fioletowo-różowego do niebieskiego)."
+    },
+    {
+      "id": "time_display",
+      "role": "text",
+      "bbox": { "x": 320, "y": 80, "width": 128, "height": 64 },
+      "zIndex": 2,
+      "notes": "Cyfrowy zegar, typografia sans-serif, biały/cyjanowy kolor, duży kontrast."
+    },
+    {
+      "id": "pie_chart",
+      "role": "chart",
+      "bbox": { "x": 144, "y": 144, "width": 480, "height": 480 },
+      "zIndex": 1,
+      "notes": "Kołowy układ sekcji dnia – 3 segmenty: Breakfast, Play, Lunch. Styl płaski, pastelowe kolory."
+    },
+    {
+      "id": "segment_breakfast",
+      "role": "item",
+      "bbox": { "x": 144, "y": 384, "width": 240, "height": 240 },
+      "zIndex": 2,
+      "notes": "Sekcja 'Breakfast', kolor żółty (#F9CC4E), ikona misia. Tekst biały, średni kontrast."
+    },
+    {
+      "id": "segment_play",
+      "role": "item",
+      "bbox": { "x": 384, "y": 144, "width": 240, "height": 240 },
+      "zIndex": 2,
+      "notes": "Sekcja 'Play', kolor turkusowy (#47D2C4). Tekst biały, wysoki kontrast."
+    },
+    {
+      "id": "segment_lunch",
+      "role": "item",
+      "bbox": { "x": 384, "y": 384, "width": 240, "height": 240 },
+      "zIndex": 2,
+      "notes": "Sekcja 'Lunch', kolor łososiowy (#F38C65), ikona drzewa. Tekst biały, umiarkowany kontrast."
+    },
+    {
+      "id": "hand",
+      "role": "icon",
+      "bbox": { "x": 340, "y": 300, "width": 88, "height": 88 },
+      "zIndex": 3,
+      "notes": "Wskazówka wskazująca aktualną aktywność, kolor jasno-miętowy (#8EE1DA)."
+    },
+    {
+      "id": "background_icons",
+      "role": "decoration",
+      "bbox": { "x": 0, "y": 0, "width": 768, "height": 768 },
+      "zIndex": 0,
+      "notes": "Dekoracyjne ikony chmurek i księżyca, niskokontrastowe, nieinteraktywne."
+    }
+  ]
+}

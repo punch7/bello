@@ -1,0 +1,50 @@
+{
+  "colors": {
+    "bg": "#D8D3E0",
+    "surface": "#7283C5",
+    "primary": "#6FD2CC",
+    "accent": "#F8C854",
+    "secondary": "#F38A63",
+    "text": {
+      "base": "#FFFFFF",
+      "muted": "#CFE3F5",
+      "inverted": "#2B2E3B"
+    },
+    "illustration": {
+      "skyTop": "#6A8ACF",
+      "skyBottom": "#F0B4A8",
+      "cloud": "#A1B4DA",
+      "moon": "#F1D8D0",
+      "bear": "#B87C2A",
+      "tree": "#63B36E"
+    }
+  },
+  "radii": { "xs": 6, "md": 16, "xl": 32 },
+  "shadows": { "card": "0 8px 20px rgba(0,0,0,0.2)" },
+  "spacing": { "xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24, "2xl": 32 },
+  "typography": {
+    "fontFamily": "Inter, system-ui, -apple-system, Segoe UI, Roboto, Apple Color Emoji",
+    "sizes": { "xs": 12, "sm": 14, "md": 16, "lg": 20, "xl": 28, "2xl": 36, "3xl": 48 },
+    "weights": { "regular": 400, "medium": 500, "semibold": 600, "bold": 700 },
+    "lineHeights": { "tight": 1.1, "snug": 1.25, "normal": 1.5 }
+  },
+  "grid": { "columns": 12, "gutter": 16, "maxWidth": 768 },
+  "contrast": {
+    "bgToTextBase": "AAA",
+    "surfaceToTextBase": "AA",
+    "primaryToTextInverted": "AAA",
+    "accentToTextInverted": "AA"
+  },
+  "variants": {
+    "light": {
+      "bg": "#EDE8F3",
+      "surface": "#7283C5",
+      "text": "#FFFFFF"
+    },
+    "dark": {
+      "bg": "#2A2C3B",
+      "surface": "#4A5A8B",
+      "text": "#E6E9F4"
+    }
+  }
+}
