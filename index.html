@@ -5,14 +5,85 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Bello — Zegar</title>
   <style>
-    html,body { height:100%; margin:0; background:#FAFAF8; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
-    .wrap { height:100%; display:grid; place-items:center }
-    canvas { width:min(92vmin, 720px); height:min(92vmin, 720px) }
-    .status { position:fixed; left:12px; right:12px; bottom:12px; text-align:center; color:#666; font-size:14px }
+    html,body { 
+      height:100%; 
+      margin:0; 
+      background: linear-gradient(135deg, #7B9FD3 0%, #9BA8D8 25%, #C4A4C7 50%, #E5B5C3 75%, #F0C9C9 100%);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      overflow: hidden;
+    }
+    .wrap { 
+      height:100%; 
+      display:grid; 
+      place-items:center;
+      position: relative;
+    }
+    canvas { 
+      width:min(92vmin, 720px); 
+      height:min(92vmin, 720px);
+      filter: drop-shadow(0 20px 40px rgba(0,0,0,0.15));
+    }
+    .status { 
+      position:fixed; 
+      left:12px; 
+      right:12px; 
+      bottom:12px; 
+      text-align:center; 
+      color:#666; 
+      font-size:14px;
+      opacity: 0.7;
+    }
+    .time-display {
+      position: absolute;
+      top: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: min(10vmin, 100px);
+      font-weight: 300;
+      color: #A8E6E1;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      letter-spacing: 0.05em;
+      z-index: 10;
+    }
+    .cloud {
+      position: absolute;
+      color: #5A7FA8;
+      opacity: 0.4;
+      font-size: min(8vmin, 80px);
+      pointer-events: none;
+    }
+    .cloud.left { top: 25%; left: 15%; }
+    .cloud.right { top: 30%; right: 15%; }
+    .moon {
+      position: absolute;
+      bottom: 20%;
+      right: 18%;
+      color: #F5D5D5;
+      opacity: 0.6;
+      font-size: min(10vmin, 100px);
+      pointer-events: none;
+    }
+    .stars {
+      position: absolute;
+      color: #E8D4B8;
+      opacity: 0.3;
+      font-size: min(3vmin, 30px);
+      pointer-events: none;
+    }
+    .star1 { top: 35%; left: 25%; }
+    .star2 { top: 45%; right: 22%; }
+    .star3 { bottom: 35%; left: 20%; }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="time-display" id="time-display">--:--</div>
+    <div class="cloud left">☁️</div>
+    <div class="cloud right">☁️</div>
+    <div class="moon">🌙</div>
+    <div class="stars star1">✨</div>
+    <div class="stars star2">✨</div>
+    <div class="stars star3">✨</div>
     <canvas id="clock" width="800" height="800"></canvas>
   </div>
   <div class="status" id="status">Ładowanie…</div>
@@ -24,9 +95,53 @@
     const canvas   = document.getElementById('clock');
     const ctx      = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
+    const timeDisplayEl = document.getElementById('time-display');
 
     let segments = [];
     let dialAnchorMinutes = 0; // start okna 12h (minuty na tarczy, 0..719)
+    let useMockData = false;
+
+    // Mock data for testing/fallback
+    function getMockSegments() {
+      const now = new Date();
+      const { h, m } = getHMInTZ(now, 'America/New_York');
+      const currentMin = (h % 12) * 60 + m;
+      
+      return [
+        {
+          startAngle: -Math.PI/2,
+          endAngle: -Math.PI/2 + (Math.PI * 2 * 0.25), // 25% = 3 hours
+          color: '#5FB8E8',
+          icon: '🍳',
+          label: 'Breakfast',
+          status: currentMin < 180 ? 'now' : 'past'
+        },
+        {
+          startAngle: -Math.PI/2 + (Math.PI * 2 * 0.25),
+          endAngle: -Math.PI/2 + (Math.PI * 2 * 0.65), // 40% = ~5 hours
+          color: '#6AD4CE',
+          icon: '🎮',
+          label: 'Play',
+          status: currentMin >= 180 && currentMin < 468 ? 'now' : currentMin < 180 ? 'future' : 'past'
+        },
+        {
+          startAngle: -Math.PI/2 + (Math.PI * 2 * 0.65),
+          endAngle: -Math.PI/2 + (Math.PI * 2 * 0.85), // 20% = ~2.5 hours
+          color: '#F5A962',
+          icon: '🌳',
+          label: 'Lunch',
+          status: currentMin >= 468 && currentMin < 612 ? 'now' : currentMin < 468 ? 'future' : 'past'
+        },
+        {
+          startAngle: -Math.PI/2 + (Math.PI * 2 * 0.85),
+          endAngle: -Math.PI/2 + (Math.PI * 2), // 15% rest
+          color: '#E88D9E',
+          icon: '🐻',
+          label: '',
+          status: currentMin >= 612 ? 'now' : 'future'
+        }
+      ];
+    }
 
     // ---------- FETCH ----------
     async function fetchData() {
@@ -35,18 +150,19 @@
         const res = await fetch(WEBHOOK_URL, { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-  segments = Array.isArray(data) ? data : [];
-  // normalize anchor from backend: ensure it's a number in 0..719
-  const rawAnchor = segments[0]?.dialAnchorMinutes ?? 0;
-  dialAnchorMinutes = Number(rawAnchor) || 0;
-  dialAnchorMinutes = ((dialAnchorMinutes % 720) + 720) % 720;
+        segments = Array.isArray(data) ? data : [];
+        useMockData = false;
+        // normalize anchor from backend: ensure it's a number in 0..719
+        const rawAnchor = segments[0]?.dialAnchorMinutes ?? 0;
+        dialAnchorMinutes = Number(rawAnchor) || 0;
+        dialAnchorMinutes = ((dialAnchorMinutes % 720) + 720) % 720;
   
-  // DEBUG: log values to console
-  console.log('DEBUG fetchData:', {
-    rawAnchor,
-    normalizedDialAnchorMinutes: dialAnchorMinutes,
-    segmentsCount: segments.length
-  });
+        // DEBUG: log values to console
+        console.log('DEBUG fetchData:', {
+          rawAnchor,
+          normalizedDialAnchorMinutes: dialAnchorMinutes,
+          segmentsCount: segments.length
+        });
   
         // status: pokaż czas ET, żeby łatwo porównać z wskazówkami
         const { h, m, s } = getHMInTZ(new Date(), 'America/New_York');
@@ -55,7 +171,16 @@
         draw();
       } catch (e) {
         console.error(e);
-        statusEl.textContent = 'Błąd pobierania danych (sprawdź CORS/URL)';
+        // Use mock data as fallback
+        if (!useMockData) {
+          useMockData = true;
+          segments = getMockSegments();
+          dialAnchorMinutes = 0;
+          const { h, m, s } = getHMInTZ(new Date(), 'America/New_York');
+          const hh = String(h).padStart(2,'0'), mm = String(m).padStart(2,'0'), ss = String(s).padStart(2,'0');
+          statusEl.textContent = `Demo mode • ${hh}:${mm}:${ss} ET`;
+          draw();
+        }
       }
     }
 
@@ -84,17 +209,50 @@
 
       const R     = Math.min(W,H) * 0.46; // promień tarczy
       const rIcon = R * 0.82;             // promień dla emoji
+      const rLabel = R * 0.65;            // promień dla etykiet
 
       ctx.clearRect(0,0,W,H);
 
-      // tło tarczy
-      ctx.fillStyle = '#FFFFFF';
+      // Update digital time display
+      const now = new Date();
+      const { h, m, s } = getHMInTZ(now, 'America/New_York');
+      const hh = String(h).padStart(2,'0'), mm = String(m).padStart(2,'0');
+      timeDisplayEl.textContent = `${hh}:${mm}`;
+
+      // outer shadow for 3D effect
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowBlur = 30;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 15;
+
+      // Outer border ring (gradient)
+      const gradientOuter = ctx.createLinearGradient(cx-R*1.1, cy-R*1.1, cx+R*1.1, cy+R*1.1);
+      gradientOuter.addColorStop(0, '#8FA8D8');
+      gradientOuter.addColorStop(0.5, '#B8A8C8');
+      gradientOuter.addColorStop(1, '#E8B8C8');
+      ctx.fillStyle = gradientOuter;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R + 30, 0, Math.PI*2);
+      ctx.fill();
+
+      // Reset shadow for inner elements
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // tło tarczy - gradient
+      const gradientBg = ctx.createLinearGradient(cx, cy-R, cx, cy+R);
+      gradientBg.addColorStop(0, '#2B5F8F');
+      gradientBg.addColorStop(0.4, '#3B7FAF');
+      gradientBg.addColorStop(1, '#E8A8B8');
+      ctx.fillStyle = gradientBg;
       ctx.beginPath();
       ctx.arc(cx, cy, R + 10, 0, Math.PI*2);
       ctx.fill();
 
       // ticki co 1h (12 szt.)
-      ctx.strokeStyle = '#E6E2DC';
+      ctx.strokeStyle = 'rgba(230,226,220,0.4)';
       ctx.lineWidth = Math.max(1.5, Math.min(W,H)*0.003);
       for (let i=0;i<12;i++){
         const a = (i/12)*Math.PI*2 - Math.PI/2;
@@ -106,7 +264,7 @@
       // WYCIĘCIA — pełne „wedge" od środka
       // Backend gives angles relative to dialAnchorMinutes at 12 o'clock position
       // We need to rotate them to absolute time positions
-      const anchorOffset = (dialAnchorMinutes / 720) * Math.PI * 2;
+      const anchorOffset = useMockData ? 0 : (dialAnchorMinutes / 720) * Math.PI * 2;
 
       for (const s of segments) {
         // Convert backend angles (relative to dialAnchorMinutes) to absolute angles
@@ -135,13 +293,21 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(s.icon || '🔆', ip.x, ip.y);
+
+        // label text
+        if (s.label) {
+          const lp = polar(cx, cy, rLabel, mid);
+          ctx.font = `bold ${Math.round(Math.min(W,H)*0.04)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(0,0,0,0.3)';
+          ctx.shadowBlur = 4;
+          ctx.fillText(s.label, lp.x, lp.y);
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+        }
       }
 
       // === WSKAZÓWKI CZASU (America/New_York) ===
-      const now = new Date();
-      const { h, m, s } = getHMInTZ(now, 'America/New_York');
-
-      // minuty na tarczy 12h w ET (0..720)
       const nowMinDial = (h % 12) * 60 + m + s/60;
       
       // DEBUG: log time calculations
@@ -164,7 +330,14 @@
         aMn: (aMn * 180 / Math.PI).toFixed(1) + '°'
       });
 
-      ctx.strokeStyle = '#222';
+      // Add subtle shadow to hands
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      ctx.strokeStyle = '#2A2A2A';
+      ctx.lineCap = 'round';
 
       // godzinna
       ctx.lineWidth = Math.max(4, Math.min(W,H)*0.012);
@@ -176,8 +349,18 @@
       ctx.beginPath(); ctx.moveTo(cx,cy);
       ctx.lineTo(cx + (R*0.8)*Math.cos(aMn), cy + (R*0.8)*Math.sin(aMn)); ctx.stroke();
 
+      // Reset shadow for pin
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
       // pin na środku
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = '#4A9B8E';
+      ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H)*0.02, 0, Math.PI*2); ctx.fill();
+      
+      // Inner highlight on pin
+      ctx.fillStyle = '#7DC9BA';
       ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H)*0.015, 0, Math.PI*2); ctx.fill();
     }
 
