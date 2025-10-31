@@ -5,17 +5,84 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Bello — Zegar</title>
   <style>
-    html,body { height:100%; margin:0; background:#FAFAF8; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
-    .wrap { height:100%; display:grid; place-items:center }
-    canvas { width:min(92vmin, 720px); height:min(92vmin, 720px) }
-    .status { position:fixed; left:12px; right:12px; bottom:12px; text-align:center; color:#666; font-size:14px }
+    :root{
+      /* fallback — możesz później nadpisać z tokenów */
+      --bg: #FAFAF8;
+      --sky-top: #6A8ACF;    /* chłodny błękit u góry */
+      --sky-bottom: #F0B4A8; /* ciepły zachód u dołu */
+      --text-on-sky: #FFFFFF;
+      --card-radius: 32px;
+      --card-shadow: 0 14px 40px rgba(20, 25, 40, 0.25);
+    }
+
+    html, body { height:100%; margin:0; background:var(--bg); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
+
+    /* Scena */
+    .app { min-height:100%; display:grid; place-items:center; padding:24px; }
+
+    /* Kafelek zegara (ramka + gradient nieba) */
+    .clock-card{
+      position: relative;
+      width: min(92vw, 820px);
+      aspect-ratio: 1 / 1;
+      border-radius: var(--card-radius);
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 70%);
+      display:grid;
+      place-items:center;
+    }
+
+    /* Cyfrowy czas na górze */
+    .time{
+      position:absolute;
+      top:6%;
+      left:50%;
+      transform:translateX(-50%);
+      font-weight:800;
+      letter-spacing:0.5px;
+      color:var(--text-on-sky);
+      text-shadow:0 1px 0 rgba(0,0,0,.08);
+      font-size:clamp(28px, 6vw, 54px);
+      user-select:none;
+      -webkit-user-select:none;
+    }
+
+    /* Canvas w środku karty */
+    .dial-wrap{
+      width:min(86vmin, 720px);
+      max-width:92%;
+      aspect-ratio:1/1;
+      display:grid;
+      place-items:center;
+    }
+    canvas { width:100%; height:100%; }
+
+    /* Pasek statusu na dole karty */
+    .status{
+      position:absolute;
+      left:12px; right:12px; bottom:12px;
+      text-align:center;
+      color:rgba(255,255,255,.9);
+      font-size:14px;
+      text-shadow:0 1px 0 rgba(0,0,0,.25);
+      user-select:none;
+      -webkit-user-select:none;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <canvas id="clock" width="800" height="800"></canvas>
-  </div>
-  <div class="status" id="status">Ładowanie…</div>
+  <main class="app">
+    <section class="clock-card" aria-label="Zegar rytmu dnia">
+      <div class="time" id="timeDisplay">--:--</div>
+
+      <div class="dial-wrap">
+        <canvas id="clock" width="800" height="800" aria-label="Tarcza zegara"></canvas>
+      </div>
+
+      <div class="status" id="status">Ładowanie…</div>
+    </section>
+  </main>
 
   <script>
     // ✳️ endpoint z n8n (transform „wedge + 12h od startu bieżącej aktywności”)
@@ -24,6 +91,7 @@
     const canvas   = document.getElementById('clock');
     const ctx      = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
+    const timeEl   = document.getElementById('timeDisplay');
 
     let segments = [];
     let dialAnchorMinutes = 0; // start okna 12h (minuty na tarczy, 0..719)
@@ -35,23 +103,19 @@
         const res = await fetch(WEBHOOK_URL, { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-  segments = Array.isArray(data) ? data : [];
-  // normalize anchor from backend: ensure it's a number in 0..719
-  const rawAnchor = segments[0]?.dialAnchorMinutes ?? 0;
-  dialAnchorMinutes = Number(rawAnchor) || 0;
-  dialAnchorMinutes = ((dialAnchorMinutes % 720) + 720) % 720;
-  
-  // DEBUG: log values to console
-  console.log('DEBUG fetchData:', {
-    rawAnchor,
-    normalizedDialAnchorMinutes: dialAnchorMinutes,
-    segmentsCount: segments.length
-  });
-  
+
+        segments = Array.isArray(data) ? data : [];
+
+        // normalize anchor from backend: ensure it's a number in 0..719
+        const rawAnchor = segments[0]?.dialAnchorMinutes ?? 0;
+        dialAnchorMinutes = Number(rawAnchor) || 0;
+        dialAnchorMinutes = ((dialAnchorMinutes % 720) + 720) % 720;
+
         // status: pokaż czas ET, żeby łatwo porównać z wskazówkami
         const { h, m, s } = getHMInTZ(new Date(), 'America/New_York');
         const hh = String(h).padStart(2,'0'), mm = String(m).padStart(2,'0'), ss = String(s).padStart(2,'0');
         statusEl.textContent = `OK: ${segments.length} wydarzeń • ${hh}:${mm}:${ss} ET`;
+
         draw();
       } catch (e) {
         console.error(e);
@@ -60,9 +124,7 @@
     }
 
     // ---------- HELPERY ----------
-    function polar(cx, cy, r, a) {
-      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-    }
+    function polar(cx, cy, r, a) { return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }; }
 
     // aktualny czas w wskazanej TZ (24h)
     function getHMInTZ(date, timeZone) {
@@ -87,7 +149,7 @@
 
       ctx.clearRect(0,0,W,H);
 
-      // tło tarczy
+      // tło tarczy (biały "krążek" wewnątrz gradientu)
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
       ctx.arc(cx, cy, R + 10, 0, Math.PI*2);
@@ -104,15 +166,13 @@
       }
 
       // WYCIĘCIA — pełne „wedge" od środka
-      // Backend gives angles relative to dialAnchorMinutes at 12 o'clock position
-      // We need to rotate them to absolute time positions
+      // Backend daje kąty względne do dialAnchorMinutes — przeliczamy na absolutne
       const anchorOffset = (dialAnchorMinutes / 720) * Math.PI * 2;
 
       for (const s of segments) {
-        // Convert backend angles (relative to dialAnchorMinutes) to absolute angles
         let a0 = s.startAngle + anchorOffset;
         let a1 = s.endAngle + anchorOffset;
-        if (a1 <= a0) a1 += Math.PI*2; // ciągłość łuku (przejście przez -π/π)
+        if (a1 <= a0) a1 += Math.PI*2; // ciągłość łuku
 
         const p0 = polar(cx, cy, R, a0);
 
@@ -121,14 +181,14 @@
         ctx.fillStyle = s.color || '#ddd';
 
         ctx.beginPath();
-        ctx.moveTo(cx, cy);          // od środka
-        ctx.lineTo(p0.x, p0.y);      // promień do startu
-        ctx.arc(cx, cy, R, a0, a1);  // łuk
-        ctx.closePath();             // do środka
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(p0.x, p0.y);
+        ctx.arc(cx, cy, R, a0, a1);
+        ctx.closePath();
         ctx.fill();
         ctx.restore();
 
-        // emoji na środku łuku
+        // emoji/ikona na środku łuku
         const mid = (a0 + a1) / 2;
         const ip = polar(cx, cy, rIcon, mid);
         ctx.font = `${Math.round(Math.min(W,H)*0.06)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
@@ -137,32 +197,21 @@
         ctx.fillText(s.icon || '🔆', ip.x, ip.y);
       }
 
-      // === WSKAZÓWKI CZASU (America/New_York) ===
+      // === WSKAZÓWKI + CYFROWY CZAS (America/New_York) ===
       const now = new Date();
       const { h, m, s } = getHMInTZ(now, 'America/New_York');
 
+      // odśwież górny wyświetlacz czasu
+      const hh = String(h).padStart(2,'0');
+      const mm = String(m).padStart(2,'0');
+      timeEl.textContent = `${hh}:${mm}`;
+
       // minuty na tarczy 12h w ET (0..720)
       const nowMinDial = (h % 12) * 60 + m + s/60;
-      
-      // DEBUG: log time calculations
-      console.log('DEBUG draw:', {
-        localTime: now.toLocaleString(),
-        etTime: `${h}:${m}:${s}`,
-        nowMinDial,
-        dialAnchorMinutes
-      });
 
-      // KĄTY ABSOLUTNE (bez użycia dialAnchorMinutes)
-      // Zegar ma pokazywać rzeczywisty czas ET na stałej tarczy.
+      // KĄTY ABSOLUTNE (zegar pokazuje rzeczywisty ET na stałej tarczy)
       const aHr = (nowMinDial / 720) * Math.PI*2 - Math.PI/2;
       const aMn = ((m + s/60) / 60) * Math.PI*2 - Math.PI/2;
-
-      // DEBUG: log angle calculations (absolute)
-      console.log('DEBUG angles (abs):', {
-        nowMinDial,
-        aHr: (aHr * 180 / Math.PI).toFixed(1) + '°',
-        aMn: (aMn * 180 / Math.PI).toFixed(1) + '°'
-      });
 
       ctx.strokeStyle = '#222';
 
@@ -176,7 +225,7 @@
       ctx.beginPath(); ctx.moveTo(cx,cy);
       ctx.lineTo(cx + (R*0.8)*Math.cos(aMn), cy + (R*0.8)*Math.sin(aMn)); ctx.stroke();
 
-      // pin na środku
+      // pin
       ctx.fillStyle = '#222';
       ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H)*0.015, 0, Math.PI*2); ctx.fill();
     }
@@ -184,7 +233,7 @@
     // ---------- HARMONOGRAM ----------
     fetchData();                    // pierwszy fetch
     setInterval(fetchData, 60_000); // dane co minutę
-    setInterval(draw, 1_000);       // wskazówki co sekundę
+    setInterval(draw, 1_000);       // wskazówki + cyfrowy czas co sekundę
   </script>
 </body>
 </html>
