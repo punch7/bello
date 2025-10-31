@@ -160,78 +160,102 @@
 
       // === GODZINNA (SNAKE) ===
       // Draw wavy snake body for hour hand
-      const snakeLength = R * 0.52;
-      const snakeSegments = 12;
-      const waveAmplitude = Math.min(W,H) * 0.020;
-      const waveFrequency = 2.5;
+      const snakeLength = R * 0.65; // longer snake
+      const snakeSegments = 15;
+      const waveAmplitude = Math.min(W,H) * 0.025;
       
       ctx.strokeStyle = '#22c55e'; // bright green color
-      ctx.lineWidth = Math.max(7, Math.min(W,H)*0.018);
+      ctx.lineWidth = Math.max(10, Math.min(W,H)*0.025); // thicker snake
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       
-      // Draw wavy path from center to end
+      // Store snake path points for sparkles
+      const snakePath = [{x: cx, y: cy}];
+      
+      // Draw wavy path from center to end with irregular shape
       for (let i = 1; i <= snakeSegments; i++) {
         const t = i / snakeSegments;
         const dist = snakeLength * t;
-        const wave = Math.sin(t * Math.PI * waveFrequency) * waveAmplitude * (1 - t * 0.2);
+        // More irregular wave pattern combining sine waves
+        const wave1 = Math.sin(t * Math.PI * 2.5) * waveAmplitude * (1 - t * 0.2);
+        const wave2 = Math.sin(t * Math.PI * 4.3 + 0.5) * waveAmplitude * 0.4;
+        const wave = wave1 + wave2;
         const angle = aHr + Math.PI/2;
         const x = cx + dist * Math.cos(aHr) + wave * Math.cos(angle);
         const y = cy + dist * Math.sin(aHr) + wave * Math.sin(angle);
         ctx.lineTo(x, y);
+        snakePath.push({x, y});
       }
       ctx.stroke();
       
-      // Draw snake head (triangular pointer)
-      const headSize = Math.min(W,H) * 0.028;
-      const headX = cx + snakeLength * Math.cos(aHr);
-      const headY = cy + snakeLength * Math.sin(aHr);
+      // Add sparkles on the snake body
+      ctx.fillStyle = '#fef08a'; // light yellow sparkles
+      for (let i = 2; i < snakePath.length - 2; i += 3) {
+        const p = snakePath[i];
+        const sparkleSize = Math.min(W,H) * 0.006;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, sparkleSize, 0, Math.PI*2);
+        ctx.fill();
+      }
+      
+      // Add light green sparkles
+      ctx.fillStyle = '#bbf7d0'; // light green sparkles
+      for (let i = 1; i < snakePath.length - 2; i += 3) {
+        const p = snakePath[i];
+        const sparkleSize = Math.min(W,H) * 0.005;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, sparkleSize, 0, Math.PI*2);
+        ctx.fill();
+      }
+      
+      // Draw snake head (triangular pointer) - centered on the snake line
+      const headSize = Math.min(W,H) * 0.035;
+      const lastPoint = snakePath[snakePath.length - 1];
       
       ctx.fillStyle = '#16a34a'; // darker green for head
       ctx.beginPath();
-      // Point of the triangle (ahead)
-      const tipDist = headSize * 1.8;
-      const tipX = headX + tipDist * Math.cos(aHr);
-      const tipY = headY + tipDist * Math.sin(aHr);
+      // Point of the triangle (ahead) - centered
+      const tipDist = headSize * 2.0;
+      const tipX = lastPoint.x + tipDist * Math.cos(aHr);
+      const tipY = lastPoint.y + tipDist * Math.sin(aHr);
       ctx.moveTo(tipX, tipY);
       
-      // Two base points of the triangle
-      const baseAngle1 = aHr + Math.PI * 0.7;
-      const baseAngle2 = aHr - Math.PI * 0.7;
-      ctx.lineTo(headX + headSize * Math.cos(baseAngle1), headY + headSize * Math.sin(baseAngle1));
-      ctx.lineTo(headX + headSize * Math.cos(baseAngle2), headY + headSize * Math.sin(baseAngle2));
+      // Two base points of the triangle - centered on snake body
+      const baseAngle1 = aHr + Math.PI * 0.65;
+      const baseAngle2 = aHr - Math.PI * 0.65;
+      ctx.lineTo(lastPoint.x + headSize * Math.cos(baseAngle1), lastPoint.y + headSize * Math.sin(baseAngle1));
+      ctx.lineTo(lastPoint.x + headSize * Math.cos(baseAngle2), lastPoint.y + headSize * Math.sin(baseAngle2));
       ctx.closePath();
       ctx.fill();
       
       // Add eyes to snake head
       ctx.fillStyle = '#000';
-      const eyeSize = Math.min(W,H) * 0.005;
+      const eyeSize = Math.min(W,H) * 0.006;
       const eyeOffset = headSize * 0.5;
       const eyeAngle1 = aHr + Math.PI/2;
       const eyeAngle2 = aHr - Math.PI/2;
-      const eyeDist = headSize * 0.4;
+      const eyeDist = headSize * 0.5;
       
       ctx.beginPath();
-      ctx.arc(headX + eyeDist * Math.cos(aHr) + eyeOffset * Math.cos(eyeAngle1), 
-              headY + eyeDist * Math.sin(aHr) + eyeOffset * Math.sin(eyeAngle1), eyeSize, 0, Math.PI*2);
+      ctx.arc(lastPoint.x + eyeDist * Math.cos(aHr) + eyeOffset * Math.cos(eyeAngle1), 
+              lastPoint.y + eyeDist * Math.sin(aHr) + eyeOffset * Math.sin(eyeAngle1), eyeSize, 0, Math.PI*2);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(headX + eyeDist * Math.cos(aHr) + eyeOffset * Math.cos(eyeAngle2), 
-              headY + eyeDist * Math.sin(aHr) + eyeOffset * Math.sin(eyeAngle2), eyeSize, 0, Math.PI*2);
+      ctx.arc(lastPoint.x + eyeDist * Math.cos(aHr) + eyeOffset * Math.cos(eyeAngle2), 
+              lastPoint.y + eyeDist * Math.sin(aHr) + eyeOffset * Math.sin(eyeAngle2), eyeSize, 0, Math.PI*2);
       ctx.fill();
 
-      ctx.strokeStyle = '#222';
-
-      // minutowa
-      ctx.lineWidth = Math.max(3, Math.min(W,H)*0.008);
+      // minutowa - dark green and thinner
+      ctx.strokeStyle = '#16a34a'; // dark green
+      ctx.lineWidth = Math.max(2, Math.min(W,H)*0.006); // thinner
       ctx.beginPath(); ctx.moveTo(cx,cy);
       ctx.lineTo(cx + (R*0.8)*Math.cos(aMn), cy + (R*0.8)*Math.sin(aMn)); ctx.stroke();
 
-      // pin na środku
-      ctx.fillStyle = '#222';
+      // pin na środku - green
+      ctx.fillStyle = '#22c55e'; // green dot
       ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H)*0.015, 0, Math.PI*2); ctx.fill();
     }
 
