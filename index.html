@@ -11,16 +11,27 @@
       background: linear-gradient(135deg, #7B9FD3 0%, #9BA8D8 25%, #C4A4C7 50%, #E5B5C3 75%, #F0C9C9 100%);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .wrap { 
-      height:100%; 
-      display:grid; 
-      place-items:center;
+      width: min(95vmin, 760px);
+      height: min(95vmin, 760px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       position: relative;
+      background: linear-gradient(135deg, rgba(139, 159, 211, 0.3) 0%, rgba(185, 168, 200, 0.3) 50%, rgba(232, 181, 200, 0.3) 100%);
+      border-radius: min(15vmin, 150px);
+      padding: min(4vmin, 40px);
+      box-shadow: 
+        0 30px 60px rgba(0,0,0,0.15),
+        inset 0 2px 4px rgba(255,255,255,0.2);
     }
     canvas { 
-      width:min(92vmin, 720px); 
-      height:min(92vmin, 720px);
+      width:min(85vmin, 680px); 
+      height:min(85vmin, 680px);
       filter: drop-shadow(0 20px 40px rgba(0,0,0,0.15));
     }
     .status { 
@@ -47,32 +58,32 @@
     }
     .cloud {
       position: absolute;
-      color: #5A7FA8;
-      opacity: 0.4;
-      font-size: min(8vmin, 80px);
+      color: #6A8BB8;
+      opacity: 0.5;
+      font-size: min(6vmin, 60px);
       pointer-events: none;
     }
-    .cloud.left { top: 25%; left: 15%; }
-    .cloud.right { top: 30%; right: 15%; }
+    .cloud.left { top: 20%; left: 12%; }
+    .cloud.right { top: 25%; right: 12%; }
     .moon {
       position: absolute;
-      bottom: 20%;
-      right: 18%;
+      bottom: 18%;
+      right: 15%;
       color: #F5D5D5;
-      opacity: 0.6;
-      font-size: min(10vmin, 100px);
+      opacity: 0.7;
+      font-size: min(8vmin, 80px);
       pointer-events: none;
     }
     .stars {
       position: absolute;
-      color: #E8D4B8;
-      opacity: 0.3;
-      font-size: min(3vmin, 30px);
+      color: #F5E8D8;
+      opacity: 0.4;
+      font-size: min(2.5vmin, 25px);
       pointer-events: none;
     }
-    .star1 { top: 35%; left: 25%; }
-    .star2 { top: 45%; right: 22%; }
-    .star3 { bottom: 35%; left: 20%; }
+    .star1 { top: 32%; left: 22%; }
+    .star2 { top: 40%; right: 20%; }
+    .star3 { bottom: 32%; left: 18%; }
   </style>
 </head>
 <body>
